@@ -1,0 +1,12 @@
+{
+    "ModTitle": "Dress Code System",
+    "ModVersion": "0.0001",
+    "ModAuthor": "MC",
+    "ContactInfo": "",
+    "DFUnity_Version": "1.1.0",
+    "ModDescription": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+    "GUID": "24a4311e-ea19-440f-8f47-6b861f7b86b7",
+    "Files": [
+        "Assets/Game/Mods/DressCodeSystem/DressCodeSystem/DressCodeSystem.cs"
+    ]
+}

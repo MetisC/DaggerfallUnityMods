@@ -1,0 +1,12 @@
+*.meta
+*.csproj
+*.unity
+*.sln
+Library/
+Temp/
+Obj/
+Build/
+*.user
+*.log
+ReadMe.txt
+ReadMe.txt.meta
