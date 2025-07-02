@@ -7,6 +7,8 @@
     "ModDescription": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
     "GUID": "24a4311e-ea19-440f-8f47-6b861f7b86b7",
     "Files": [
-        "Assets/Game/Mods/DressCodeSystem/DressCodeSystem/DressCodeSystem.cs"
+        "Assets/Game/Mods/DressCodeSystem/DressCodeSystem/DressCodeSystem.cs",
+        "Assets/Game/Mods/DressCodeSystem/modsettings.json",
+        "Assets/Game/Mods/DressCodeSystem/DressCodeSystem/textdatabase.txt"
     ]
 }

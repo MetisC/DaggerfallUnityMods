@@ -1,0 +1,89 @@
+{
+    "Version": "1.0",
+    "Sections": [
+        {
+            "Name": "General",
+            "Description": "",
+            "IsAdvanced": false,
+            "Keys": [
+                {
+                    "Value": true,
+                    "Name": "ShowCurrentAppearanceAfterCloseInventory",
+                    "Description": "Display the current outfit status (social type and appropriateness) as a HUD message when closing the inventory window.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                {
+                    "Value": true,
+                    "Name": "Nudity",
+                    "Description": "If enabled, characters without any clothing will be described as \"nude\". If disabled, they will be described as \"wearing only underwear\".",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                {
+                    "Min": 0,
+                    "Max": 60,
+                    "Value": 5,
+                    "Name": "ClothingUpdateFrequency",
+                    "Description": "How often (in seconds) the system reevaluates the player's outfit. A value of 0 means only updates after changing the equipment.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Value": true,
+                    "Name": "EnableDressCommentsBeforeTalk",
+                    "Description": "If enabled, NPCs may comment on the player's clothing and deny conversation before dialogue begins.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                {
+                    "Value": true,
+                    "Name": "IgnoreQuestCharacters",
+                    "Description": "If enabled, quest-related NPCs won't be affected by this system.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                {
+                    "Min": 0,
+                    "Max": 120,
+                    "Value": 25,
+                    "Name": "AmbientContextTextFrequency",
+                    "Description": "Defines the minimum interval between ambient context messages. A value of 0 disables them completely. Lower values allow more frequent messages.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Value": true,
+                    "Name": "EnforceDressCodeInSensitiveAreas",
+                    "Description": "Restricts access to castles, temples, and noble residences unless the player's clothing is appropriate. Shops and taverns are more permissive, but nudity is always denied.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                {
+                    "Value": true,
+                    "Name": "EnableDressCodeCrime",
+                    "Description": "If enabled, being indecent in a restricted area may trigger a legal response after a short grace period.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                {
+                    "Min": 15,
+                    "Max": 500,
+                    "Value": 60,
+                    "Name": "CrimeGracePeriod",
+                    "Description": "Defines how many seconds the player has to dress before guards intervene. Only applies when \"Enable Dress Code Crime\" is active.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Value": true,
+                    "Name": "AffectFactionReputationByDress",
+                    "Description": "If enabled, refusing to dress appropriately will decrease reputation with certain factions (temples, nobles, merchants, etc.).",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                }
+            ],
+            "$version": "v1"
+        }
+    ]
+}

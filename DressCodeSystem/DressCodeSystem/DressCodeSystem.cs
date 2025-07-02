@@ -8,6 +8,12 @@ using DaggerfallWorkshop.Game.Items;
 using DaggerfallWorkshop.Game.UserInterfaceWindows;
 using DaggerfallWorkshop.Game.Serialization;
 using System.Collections;
+using DaggerfallConnect;
+using DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings;
+using DaggerfallWorkshop.Game.UserInterface;
+using DaggerfallConnect.Arena2;
+using DaggerfallWorkshop;
+using System.Collections.Generic;
 
 namespace DressCodeSystem
 {
@@ -35,7 +41,7 @@ namespace DressCodeSystem
         const int DRESS_NOBLE_INDECENT = 11;
         const int DRESS_NOBLE_NO_JEWELS = 12;
         const int DRESS_NOBLE_BATTLE_READY = 13;
-
+        
         #endregion
 
         [Invoke(StateManager.StateTypes.Start, 0)]
@@ -47,10 +53,12 @@ namespace DressCodeSystem
         }
 
         private Coroutine clothingChecker;
+        private Coroutine ambientTextDisplay;
 
         void Start()
         {
-            clothingChecker = StartCoroutine(CheckClothingRoutine());
+            //clothingChecker = StartCoroutine(CheckClothingRoutine());
+            //ambientTextDisplay = StartCoroutine(ShowAmbientTextDisplay());
         }
 
         IEnumerator CheckClothingRoutine()
@@ -63,30 +71,128 @@ namespace DressCodeSystem
                     // PENDIENTE PENDIENTE  PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE
                     // OJO ESTO COMPRUEBA CADA 5 SEGUNDOS, en PRODUCCION LO QUIERO !!
                 }
+                /*
+                var debug = new System.Text.StringBuilder();
+                debug.AppendLine("[DressCode - DEBUG] Current Settings:");
+                debug.AppendLine($"Nudity: {nudityEnabled}");
+                debug.AppendLine($"ClothingUpdateFrequency: {clothingUpdateFrequency}");
+                debug.AppendLine($"IgnoreQuestCharacters: {ignoreQuestCharacters}");
+                DaggerfallUI.AddHUDText(debug.ToString(), 15f);
+                */
 
-                yield return new WaitForSeconds(5f);
+                yield return new WaitForSeconds((float)clothingUpdateFrequency);
             }
         }
-
 
         void OnDestroy()
         {
             if (clothingChecker != null) StopCoroutine(clothingChecker);
         }
 
+        #region Mod Settings ************************************************************************************
+
+        // Updates clothes frequency
+        private int clothingUpdateFrequency = 5;
+
+        // Censors the nude states
+        private bool nudityEnabled = true;
+
+        // Frequency ambient texts
+        private int ambientContextTextFrequency = 25;
+
+        // Shows a message with the dress code after closing inventory
+        private bool showCurrentAppearanceAfterCloseInventory;
+
+        private bool enforceDressCodeInSensitiveAreas;
+        private bool enableDressCodeCrime;
+        private int crimeGracePeriod;
+
+        // Activated, quest's NPC won't be ignored
+        private bool ignoreQuestCharacters = true;
+        private bool enableDressCommentsBeforeTalk;
+        private bool affectFactionReputationByDress;
+        
+
         void Awake()
         {
+            mod.LoadSettingsCallback = (ModSettings settings, ModSettingsChange change) =>
+            {
+                LoadSettings(settings, change);
+            };
+            mod.LoadSettings();
             mod.IsReady = true;
             Debug.LogFormat("[Dress Code System] Ready");
             StartGameBehaviour.OnStartGame += StartSaver_OnStartGame;
             DaggerfallUI.UIManager.OnWindowChange += UIManager_OnWindowChange;
             SaveLoadManager.OnLoad += SaveLoadManager_OnLoad;
+
         }
+
+        private void LoadSettings(ModSettings settings, ModSettingsChange change)
+        {
+            if (change.HasChanged("General", "Nudity"))
+                nudityEnabled = settings.GetValue<bool>("General", "Nudity");
+
+            if (change.HasChanged("General", "ClothingUpdateFrequency"))
+            {
+                clothingUpdateFrequency = settings.GetValue<int>("General", "ClothingUpdateFrequency");
+                RestartClothingRoutine();
+            }
+
+            if (change.HasChanged("General", "IgnoreQuestCharacters"))
+                ignoreQuestCharacters = settings.GetValue<bool>("General", "IgnoreQuestCharacters");
+
+            if (change.HasChanged("General", "AmbientContextTextFrequency"))
+            {
+                ambientContextTextFrequency = settings.GetValue<int>("General", "AmbientContextTextFrequency");
+                RestartAmbientRoutine();
+            }
+
+            if (change.HasChanged("General", "ShowCurrentAppearanceAfterCloseInventory"))
+                showCurrentAppearanceAfterCloseInventory = settings.GetValue<bool>("General", "ShowCurrentAppearanceAfterCloseInventory");
+
+            if (change.HasChanged("General", "EnableDressCommentsBeforeTalk"))
+                enableDressCommentsBeforeTalk = settings.GetValue<bool>("General", "EnableDressCommentsBeforeTalk");
+
+            if (change.HasChanged("General", "EnforceDressCodeInSensitiveAreas"))
+                enforceDressCodeInSensitiveAreas = settings.GetValue<bool>("General", "EnforceDressCodeInSensitiveAreas");
+
+            if (change.HasChanged("General", "EnableDressCodeCrime"))
+                enableDressCodeCrime = settings.GetValue<bool>("General", "EnableDressCodeCrime");
+
+            if (change.HasChanged("General", "CrimeGracePeriod"))
+                crimeGracePeriod = settings.GetValue<int>("General", "CrimeGracePeriod");
+
+            if (change.HasChanged("General", "AffectFactionReputationByDress"))
+                affectFactionReputationByDress = settings.GetValue<bool>("General", "AffectFactionReputationByDress");
+        }
+
+        void RestartClothingRoutine()
+        {
+            if (clothingChecker != null || clothingUpdateFrequency == 0)
+                StopCoroutine(clothingChecker);
+
+            if (clothingUpdateFrequency > 0)
+                clothingChecker = StartCoroutine(CheckClothingRoutine());
+        }
+
+        void RestartAmbientRoutine()
+        {
+            if (ambientTextDisplay != null || ambientContextTextFrequency == 0)
+                StopCoroutine(ambientTextDisplay);
+
+            if (ambientContextTextFrequency > 0)
+                ambientTextDisplay = StartCoroutine(ShowAmbientTextDisplay());
+        }
+
+        #endregion
 
         private void SaveLoadManager_OnLoad(SaveData_v1 saveData)
         {
             UpdateClothingState();
         }
+
+        private TextLabel dresscodeStatusLabel = null;
 
         private void UIManager_OnWindowChange(object sender, EventArgs e)
         {
@@ -106,7 +212,76 @@ namespace DressCodeSystem
                 // Inventory closed
                 wasInInventory = false;
                 UpdateClothingState();
+
+                if (showCurrentAppearanceAfterCloseInventory)
+                {
+                    // We show the current cloth after closing inventory
+                    DaggerfallUI.AddHUDText("Current appearance: " + GetDressCodeStatusText(clothingState), 7f);
+                    return;
+                }   
             }
+
+            if (DaggerfallUI.UIManager.TopWindow is DaggerfallCharacterSheetWindow statusWindow)
+            {
+                // Remove if already exists
+                if (dresscodeStatusLabel != null)
+                {
+                    statusWindow.NativePanel.Components.Remove(dresscodeStatusLabel);
+                    dresscodeStatusLabel = null;
+                }
+
+                // Update dresscode state
+                UpdateClothingState();
+
+                // Create new label at temporary position
+                dresscodeStatusLabel = DaggerfallUI.AddTextLabel(
+                    DaggerfallUI.DefaultFont,
+                    Vector2.zero,
+                    GetDressCodeStatusText(clothingState),
+                    statusWindow.NativePanel);
+
+                // Visual setup
+                dresscodeStatusLabel.TextColor = DaggerfallUI.DaggerfallDefaultTextColor;
+                dresscodeStatusLabel.ShadowPosition = Vector2.zero;
+                dresscodeStatusLabel.BackgroundColor = Color.black;
+
+                // Centered position
+                float textWidth = dresscodeStatusLabel.TextWidth;
+                float centeredX = (statusWindow.NativePanel.InteriorWidth - textWidth) * 0.5f + 94;
+                dresscodeStatusLabel.Position = new Vector2(centeredX, 193);
+
+            }
+            /*  DISABLED text on inventory
+            if (DaggerfallUI.UIManager.TopWindow is DaggerfallInventoryWindow inventoryWindow)
+            {
+                // Remove if already exists
+                if (dresscodeStatusLabel != null)
+                {
+                    inventoryWindow.NativePanel.Components.Remove(dresscodeStatusLabel);
+                    dresscodeStatusLabel = null;
+                }
+
+                // Update dresscode state
+                UpdateClothingState();
+
+                // Create new label at temporary position
+                dresscodeStatusLabel = DaggerfallUI.AddTextLabel(
+                    DaggerfallUI.DefaultFont,
+                    Vector2.zero,
+                    GetDressCodeStatusText(clothingState),
+                    inventoryWindow.NativePanel);
+
+                // Visual setup
+                dresscodeStatusLabel.TextColor = DaggerfallUI.DaggerfallDefaultTextColor;
+                dresscodeStatusLabel.ShadowPosition = Vector2.zero;
+                dresscodeStatusLabel.BackgroundColor = Color.black;
+
+                // Position adjusted for inventory screen (shifted left)
+                float textWidth = dresscodeStatusLabel.TextWidth;
+                float centeredX = (inventoryWindow.NativePanel.InteriorWidth - textWidth) * 0.5f - 85;
+                dresscodeStatusLabel.Position = new Vector2(centeredX, 193);
+            }
+            */
         }
 
         private void StartSaver_OnStartGame(object sender, EventArgs e)
@@ -114,11 +289,10 @@ namespace DressCodeSystem
             UpdateClothingState();
         }
 
-        // Estado de vestimenta
+        // Clothing State
         int clothingState = -1;
 
-        // Tipos de prendas adicionales
-        int footwearType = -1;
+        bool footwear = false;
 
         // ***************************************************************************************************************************
         // ***************************************************************************************************************************
@@ -188,8 +362,7 @@ namespace DressCodeSystem
                     break;
             }
 
-
-            DaggerfallUI.AddHUDText($"[DressCode] Current State: {clothingStateText}", 5f);
+            //PrintDebug($"[DressCode] Current State: {clothingStateText}");
 
             /*
             // Optional debug block (uncomment for deep trace)
@@ -248,7 +421,12 @@ namespace DressCodeSystem
             */
         }
 
-
+        void PrintDebug(string message)
+        {
+#if UNITY_EDITOR
+            DaggerfallUI.AddHUDText("[DressCodeSystem - DEBUG] " + message, 7f);
+#endif
+        }
 
         // ---------------------------------------------------------------
         #region Clothing evaluation
@@ -257,9 +435,11 @@ namespace DressCodeSystem
         {
             var player = GameManager.Instance?.PlayerEntity;
             if (player == null)
-                return DRESS_FULLY_NUDE;
+                return Censorship(DRESS_FULLY_NUDE);
 
             var table = player.ItemEquipTable;
+
+            footwear = table.GetItem(EquipSlots.Feet) != null;
 
             var chestClothes = table.GetItem(EquipSlots.ChestClothes);
             var chestArmor = table.GetItem(EquipSlots.ChestArmor);
@@ -281,7 +461,7 @@ namespace DressCodeSystem
             int nobleJewels = CountNobleJewelsEquipped(table);
             bool hasNoble = HasNobleOutfit(chestClothes ?? chestArmor, legClothes ?? legArmor);
             if (HasOnlyNobleCloak(table))
-                return DRESS_NOBLE_INDECENT;
+                return Censorship(DRESS_NOBLE_INDECENT);
 
             bool topIsNobleOnly = IsNobleButNotFull(chestClothes ?? chestArmor);
             bool bottomIsNobleOnly = IsNobleButNotFull(legClothes ?? legArmor);
@@ -289,16 +469,14 @@ namespace DressCodeSystem
                              || (bottomIsNobleOnly && !HasClothesOnTop(table) && chestArmor == null);
 
             if (hasSoloNoble)
-                return DRESS_NOBLE_INDECENT;
-
+                return Censorship(DRESS_NOBLE_INDECENT);
 
             if (!isTopCovered && !isBottomCovered)
-                return DRESS_FULLY_NUDE;
+                return Censorship(DRESS_FULLY_NUDE);
 
             if (onlyUnderwear)
-                return DRESS_UNDERWEAR_ONLY;
+                return Censorship(DRESS_UNDERWEAR_ONLY);
 
-            // Noble + armadura, con joyas -> Noble Battle Ready
             if (hasNoble)
             {
                 if (isFullyCovered)
@@ -306,16 +484,16 @@ namespace DressCodeSystem
                     if (hasArmor)
                     {
                         if (nobleJewels >= 1)
-                            return DRESS_NOBLE_BATTLE_READY;
+                            return Censorship(DRESS_NOBLE_BATTLE_READY);
                         else
-                            return DRESS_NOBLE_NO_JEWELS;
+                            return Censorship(DRESS_NOBLE_NO_JEWELS);
                     }
                     else
                     {
                         if (nobleJewels >= 1)
-                            return DRESS_NOBLE_FULL;
+                            return Censorship(DRESS_NOBLE_FULL);
                         else
-                            return DRESS_NOBLE_NO_JEWELS;
+                            return Censorship(DRESS_NOBLE_NO_JEWELS);
                     }
                 }
                 else
@@ -324,41 +502,57 @@ namespace DressCodeSystem
                     bool bottomIsNoble = IsNobleCategory(legClothes ?? legArmor);
 
                     if (topIsNoble || bottomIsNoble)
-                        return DRESS_NOBLE_INDECENT;
+                        return Censorship(DRESS_NOBLE_INDECENT);
 
                     if (topIsNoble || bottomIsNoble || HasOnlyNobleCloak(table))
-                        return DRESS_NOBLE_INDECENT;
+                        return Censorship(DRESS_NOBLE_INDECENT);
                 }
             }
 
             if (!isTopCovered && !hasArmor)
-                return DRESS_COMMONER_TOPLESS;
+                return Censorship(DRESS_COMMONER_TOPLESS);
 
             if (!isBottomCovered && !hasArmor)
-                return DRESS_COMMONER_BOTTOMLESS;
+                return Censorship(DRESS_COMMONER_BOTTOMLESS);
 
             if (!isTopCovered && hasArmor)
-                return DRESS_ARMORED_TOPLESS;
+                return Censorship(DRESS_ARMORED_TOPLESS);
 
             if (!isBottomCovered && hasArmor)
-                return DRESS_ARMORED_BOTTOMLESS;
+                return Censorship(DRESS_ARMORED_BOTTOMLESS);
 
             if (hasReligious)
-                return DRESS_RELIGIOUS_GARB;
+                return Censorship(DRESS_RELIGIOUS_GARB);
 
-            // Aquí ahora aplicamos BATTLE_READY solo para no nobles
             if (!hasNoble && hasArmor && (chestClothes != null || legClothes != null))
-                return DRESS_BATTLE_READY;
+                return Censorship(DRESS_BATTLE_READY);
 
             if (!hasNoble && isFullyCovered && !hasArmor)
-                return DRESS_COMMONER_FULL;
+                return Censorship(DRESS_COMMONER_FULL);
 
             if (hasArmor && !hasClothesTop && !hasClothesBottom && !onlyUnderwear)
-                return DRESS_ARMORED_ONLY;
+                return Censorship(DRESS_ARMORED_ONLY);
 
-            return DRESS_COMMONER_FULL;
+            return Censorship(DRESS_COMMONER_FULL);
         }
 
+        private int Censorship(int state)
+        {
+            if (!nudityEnabled)
+            {
+                switch (state)
+                {
+                    case DRESS_FULLY_NUDE:
+                    case DRESS_COMMONER_TOPLESS:
+                    case DRESS_COMMONER_BOTTOMLESS:
+                    case DRESS_ARMORED_TOPLESS:
+                    case DRESS_ARMORED_BOTTOMLESS:
+                    case DRESS_NOBLE_INDECENT:
+                        return DRESS_UNDERWEAR_ONLY;
+                }
+            }
+            return state;
+        }
 
         #endregion
 
@@ -747,11 +941,34 @@ namespace DressCodeSystem
 
         void Update()
         {
+            // PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE PENDIENTE
+            // DESACTIVAR TODO ESTO !!!!!
             if (Input.GetKeyDown(KeyCode.UpArrow))
             {
                 GiveAllClothingAndJewels();
-                //DaggerfallUI.AddHUDText("DEBUG: Ropa y joyas añadidas", 4f);
             }
+            if (Input.GetKeyDown(KeyCode.RightArrow))
+            {
+                TestAllDressStatus();
+            }
+            if (Input.GetKeyDown(KeyCode.DownArrow))
+            {
+                DebugPrintAmbientContextInfo();
+            }
+            if (Input.GetKeyDown(KeyCode.KeypadMinus))
+            {
+                if (!printDebugText)
+                {
+                    printDebugText = true;
+                    DaggerfallUI.AddHUDText("[DEBUG MODE ACTIVATED]", 3f);
+                }
+                else
+                {
+                    printDebugText = false;
+                    DaggerfallUI.AddHUDText("[DEBUG MODE DISABLED]", 3f);
+                }
+            }
+
         }
 
         void GiveAllClothingAndJewels()
@@ -762,7 +979,7 @@ namespace DressCodeSystem
 
             bool isPlayerFemale = player.Gender == Genders.Female;
 
-            DaggerfallUI.AddHUDText("[DressCode - DEBUG] Adding all equipable items...");
+            PrintDebug("[DressCode - DEBUG] Adding all equipable items...");
 
             if (isPlayerFemale)
             {
@@ -820,7 +1037,440 @@ namespace DressCodeSystem
                 player.Items.AddItem(item);
             }
 
-            DaggerfallUI.AddHUDText("[DressCode - DEBUG] Added!", 4f);
+            PrintDebug("[DressCode - DEBUG] Added!");
+        }
+
+        #endregion
+
+        // /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        #region Show Ambient Text Display (INCOMPLETO)
+
+        private bool printDebugText = false;
+
+        IEnumerator ShowAmbientTextDisplay()
+        {
+            string lastKeyUsed = null;
+
+            while (true)
+            {
+                if (GameManager.Instance.IsPlayingGame() &&
+                    DaggerfallUI.UIManager.WindowCount == 0)
+                {
+                    if (printDebugText)
+                        DaggerfallUI.AddHUDText("[Ambient] Game running and UI clear", 2f);
+
+                    UpdateClothingState();
+                    if (printDebugText)
+                        DaggerfallUI.AddHUDText("[Ambient] Clothing state updated", 2f);
+
+                    string context = GetCurrentContextGroup();
+                    if (printDebugText)
+                        DaggerfallUI.AddHUDText("[Ambient] Context = " + context, 2f);
+
+                    if (string.IsNullOrEmpty(context))
+                    {
+                        if (printDebugText)
+                            DaggerfallUI.AddHUDText("[Ambient] Context is null - skipping", 2f);
+
+                        yield return WaitWithVariation();
+                        continue;
+                    }
+
+                    bool isDark = GameManager.Instance.PlayerEnterExit.IsPlayerInDarkness;
+                    bool isStreet = context == "STREET";
+                    bool isStreetAndDay = isStreet && !isDark;
+
+                    bool isInside = GameManager.Instance.PlayerEnterExit.IsPlayerInsideBuilding;
+                    bool isForcedEntry = isInside && GameManager.Instance.PlayerEnterExit.BuildingDiscoveryData.buildingKey == 0;
+                    bool isValidInterior = isInside && !isForcedEntry;
+
+                    if (printDebugText)
+                    {
+                        DaggerfallUI.AddHUDText("[Ambient] Hour: " + DaggerfallUnity.Instance.WorldTime.Now.Hour.ToString("F1"), 2f);
+                        DaggerfallUI.AddHUDText("[Ambient] IsDark: " + isDark + ", IsStreet: " + isStreet + ", IsStreetAndDay: " + isStreetAndDay, 2f);
+                        DaggerfallUI.AddHUDText("[Ambient] IsInside: " + isInside + ", ForcedEntry: " + isForcedEntry + ", IsValidInterior: " + isValidInterior, 2f);
+                    }
+
+                    if (!isStreetAndDay && !isValidInterior)
+                    {
+                        if (printDebugText)
+                            DaggerfallUI.AddHUDText("[Ambient] Not a valid moment to show ambient - skipping", 2f);
+
+                        yield return WaitWithVariation();
+                        continue;
+                    }
+
+                    string dressKey = GetDressCodeStateKey(clothingState);
+                    string gender = GameManager.Instance.PlayerEntity.Gender == Genders.Male ? "M" : "F";
+
+                    string key;
+                    int attempts = 0;
+                    do
+                    {
+                        int index = UnityEngine.Random.Range(0, 10);
+                        key = $"ambient_{context}_{dressKey}_{gender}_{index}";
+                        attempts++;
+                    }
+                    while (key == lastKeyUsed && attempts < 10);
+
+                    lastKeyUsed = key;
+
+                    string message = mod.Localize(key);
+                    if (printDebugText)
+                        DaggerfallUI.AddHUDText("[Ambient] Generated key: " + key, 2f);
+
+                    if (!string.IsNullOrEmpty(message) && !message.StartsWith("No translation"))
+                    {
+                        if (ShouldDisplayAmbient(context, clothingState))
+                            DaggerfallUI.AddHUDText(message, 6f);
+                        else if (printDebugText)
+                            DaggerfallUI.AddHUDText("[Ambient] Message valid but suppressed by filter", 2f);
+                    }
+                    else
+                    {
+                        if (printDebugText)
+                            DaggerfallUI.AddHUDText("[Ambient] No message found or translation missing", 2f);
+                    }
+                }
+                else
+                {
+                    if (printDebugText)
+                        DaggerfallUI.AddHUDText("[Ambient] IsPlayingGame=" + GameManager.Instance.IsPlayingGame() + ", WindowCount=" + DaggerfallUI.UIManager.WindowCount + " - skipping", 2f);
+                }
+
+                yield return WaitWithVariation();
+            }
+        }
+
+        WaitForSeconds WaitWithVariation()
+        {
+            float variation = UnityEngine.Random.Range(-2f, 2f);
+            float waitTime = Mathf.Max(10f, (float)ambientContextTextFrequency + variation);
+            return new WaitForSeconds(waitTime);
+        }
+
+        private string GetCurrentContextGroup()
+        {
+            var enterExit = GameManager.Instance.PlayerEnterExit;
+            var playerGPS = GameManager.Instance.PlayerGPS;
+
+            // Street
+            if (!enterExit.IsPlayerInside)
+            {
+                if (playerGPS.IsPlayerInTown())
+                    return "STREET";
+                else
+                    return null;
+            }
+
+            // Dungeon
+            if (enterExit.IsPlayerInsideDungeon)
+                return null;
+
+            // Interior
+            if (enterExit.IsPlayerInsideBuilding)
+            {
+                switch (enterExit.BuildingType)
+                {
+                    // Shop
+                    case DFLocation.BuildingTypes.Alchemist:
+                    case DFLocation.BuildingTypes.Armorer:
+                    case DFLocation.BuildingTypes.Bookseller:
+                    case DFLocation.BuildingTypes.ClothingStore:
+                    case DFLocation.BuildingTypes.FurnitureStore:
+                    case DFLocation.BuildingTypes.GemStore:
+                    case DFLocation.BuildingTypes.GeneralStore:
+                    case DFLocation.BuildingTypes.PawnShop:
+                    case DFLocation.BuildingTypes.WeaponSmith:
+                        return "SHOP";
+
+                    // House
+                    case DFLocation.BuildingTypes.House1:
+                    case DFLocation.BuildingTypes.House2:
+                    case DFLocation.BuildingTypes.House3:
+                    case DFLocation.BuildingTypes.House4:
+                    case DFLocation.BuildingTypes.House5:
+                    case DFLocation.BuildingTypes.House6:
+                        return "HOUSE";
+
+                    // Tavern
+                    case DFLocation.BuildingTypes.Tavern:
+                        return "TAVERN";
+
+                    // Temple
+                    case DFLocation.BuildingTypes.Temple:
+                        return DetectTempleStrictness((int)enterExit.FactionID);
+
+                    // Palace
+                    case DFLocation.BuildingTypes.Palace:
+                        return "CASTLE";
+
+                    // Strict Shops
+                    case DFLocation.BuildingTypes.Bank:
+                    case DFLocation.BuildingTypes.Library:
+                        return "GROUPINTERIOR_STRICT";
+
+                    // Town
+                    case DFLocation.BuildingTypes.Town4:
+                    case DFLocation.BuildingTypes.Town23:
+                        return "STREET";
+
+                    // Other
+                    case DFLocation.BuildingTypes.Ship:
+                    case DFLocation.BuildingTypes.Special1:
+                    case DFLocation.BuildingTypes.Special2:
+                    case DFLocation.BuildingTypes.Special3:
+                    case DFLocation.BuildingTypes.Special4:
+                    case DFLocation.BuildingTypes.HouseForSale:
+                        return null;
+
+                    // Guild
+                    case DFLocation.BuildingTypes.GuildHall:
+                    default:
+                        return DetectFactionInteriorStrictness((int)enterExit.FactionID);
+                }
+            }
+
+            return null;
+        }
+
+        private string DetectTempleStrictness(int factionId)
+        {
+            var player = GameManager.Instance.PlayerEntity;
+            if (player == null) return "GROUPINTERIOR_STRICT";
+
+            FactionFile.FactionData factionData;
+            bool ok = player.FactionData.GetFactionData(factionId, out factionData);
+            if (!ok)
+                return "GROUPINTERIOR_STRICT";
+
+            string facName = factionData.name;
+
+            if (facName.Contains("Dibella") || facName.Contains("Kynareth") || facName.Contains("Zenithar"))
+                return "GROUPINTERIOR_LIBERAL";
+
+            if (facName.Contains("Arkay") || facName.Contains("Mara") || facName.Contains("Akatosh") || facName.Contains("Julianos") || facName.Contains("Stendarr"))
+                return "GROUPINTERIOR_STRICT";
+
+            return "GROUPINTERIOR_STRICT";
+        }
+
+        private string DetectFactionInteriorStrictness(int factionId)
+        {
+            var player = GameManager.Instance.PlayerEntity;
+            if (player == null) return "GROUPINTERIOR_STRICT";
+
+            FactionFile.FactionData factionData;
+            bool ok = player.FactionData.GetFactionData(factionId, out factionData);
+            if (!ok) return "GROUPINTERIOR_STRICT";
+
+            string name = factionData.name;
+
+            if (name.Contains("Noble") || name.Contains("Royalty"))
+                return "CASTLE";
+
+            if (name.Contains("Thieves") ||
+                name.Contains("Brotherhood") ||
+                name.Contains("Witches") ||
+                name.Contains("Bards") ||
+                name.Contains("Commoners") ||
+                name.Contains("Vampire"))
+                return "GROUPINTERIOR_LIBERAL";
+
+            if (name.Contains("Knight") ||
+                name.Contains("Guard") ||
+                name.Contains("Bank") ||
+                name.Contains("Scholar") ||
+                name.Contains("Merchant"))
+                return "GROUPINTERIOR_STRICT";
+
+            return "GROUPINTERIOR_STRICT";
+        }
+
+        /// <summary>
+        /// Determines whether an ambient message should be shown,
+        /// based on current clothing state and contextual location.
+        /// </summary>
+        private bool ShouldDisplayAmbient(string context, int dressCode)
+        {
+            switch (dressCode)
+            {
+                case DRESS_COMMONER_FULL:
+                    // Don't show messages when dressed as a commoner in regular places
+                    // Only show if in noble/strict environments
+                    return context == "CASTLE" || context == "GROUPINTERIOR_STRICT";
+
+                case DRESS_NOBLE_FULL:
+                    // Don't show reactions in noble/strict places (expected attire)
+                    return context != "CASTLE" && context != "GROUPINTERIOR_STRICT";
+
+                case DRESS_RELIGIOUS_GARB:
+                    // Don't comment on religious garb in strict (temple-like) areas
+                    return context != "GROUPINTERIOR_STRICT";
+
+                case DRESS_NOBLE_NO_JEWELS:
+                    // Always react to lack of noble jewelry
+                    return true;
+
+                default:
+                    // All other dress codes (nudity, partial armor, etc.) are always noticeable
+                    return true;
+            }
+        }
+
+
+        #endregion
+
+        #region Show Status
+
+        string GetDressCodeStatusText(int clothingState)
+        {
+            switch (clothingState)
+            {
+                case DRESS_FULLY_NUDE:
+                    return mod.Localize("dresscode_fully_nude");
+                case DRESS_UNDERWEAR_ONLY:
+                    return mod.Localize("dresscode_underwear_only");
+                case DRESS_COMMONER_TOPLESS:
+                    return mod.Localize("dresscode_commoner_topless");
+                case DRESS_COMMONER_BOTTOMLESS:
+                    return mod.Localize("dresscode_commoner_bottomless");
+                case DRESS_ARMORED_TOPLESS:
+                    return mod.Localize("dresscode_armored_topless");
+                case DRESS_ARMORED_BOTTOMLESS:
+                    return mod.Localize("dresscode_armored_bottomless");
+                case DRESS_COMMONER_FULL:
+                    return mod.Localize("dresscode_commoner_full");
+                case DRESS_NOBLE_FULL:
+                    return mod.Localize("dresscode_noble_full");
+                case DRESS_ARMORED_ONLY:
+                    return mod.Localize("dresscode_armored_only");
+                case DRESS_BATTLE_READY:
+                    return mod.Localize("dresscode_battle_ready");
+                case DRESS_RELIGIOUS_GARB:
+                    return mod.Localize("dresscode_religious_garb");
+                case DRESS_NOBLE_INDECENT:
+                    return mod.Localize("dresscode_noble_indecent");
+                case DRESS_NOBLE_NO_JEWELS:
+                    return mod.Localize("dresscode_noble_no_jewels");
+                case DRESS_NOBLE_BATTLE_READY:
+                    return mod.Localize("dresscode_noble_battle_ready");
+                default:
+                    return string.Format(mod.Localize("dresscode_unknown"), clothingState);
+            }
+        }
+
+        string GetDressCodeStateKey(int clothingState)
+        {
+            switch (clothingState)
+            {
+                case DRESS_FULLY_NUDE: return "FULLY_NUDE";
+                case DRESS_UNDERWEAR_ONLY: return "UNDERWEAR_ONLY";
+                case DRESS_COMMONER_TOPLESS: return "COMMONER_TOPLESS";
+                case DRESS_COMMONER_BOTTOMLESS: return "COMMONER_BOTTOMLESS";
+                case DRESS_ARMORED_TOPLESS: return "ARMORED_TOPLESS";
+                case DRESS_ARMORED_BOTTOMLESS: return "ARMORED_BOTTOMLESS";
+                case DRESS_COMMONER_FULL: return "COMMONER_FULL";
+                case DRESS_NOBLE_FULL: return "NOBLE_FULL";
+                case DRESS_ARMORED_ONLY: return "ARMORED_ONLY";
+                case DRESS_BATTLE_READY: return "BATTLE_READY";
+                case DRESS_RELIGIOUS_GARB: return "RELIGIOUS_GARB";
+                case DRESS_NOBLE_INDECENT: return "NOBLE_INDECENT";
+                case DRESS_NOBLE_NO_JEWELS: return "NOBLE_NO_JEWELS";
+                case DRESS_NOBLE_BATTLE_READY: return "NOBLE_BATTLE_READY";
+                default: return "UNKNOWN";
+            }
+        }
+
+        void TestAllDressStatus()
+        {
+            int[] allStates = new int[]
+            {
+                DRESS_FULLY_NUDE,
+                DRESS_UNDERWEAR_ONLY,
+                DRESS_COMMONER_TOPLESS,
+                DRESS_COMMONER_BOTTOMLESS,
+                DRESS_ARMORED_TOPLESS,
+                DRESS_ARMORED_BOTTOMLESS,
+                DRESS_COMMONER_FULL,
+                DRESS_NOBLE_FULL,
+                DRESS_ARMORED_ONLY,
+                DRESS_BATTLE_READY,
+                DRESS_RELIGIOUS_GARB,
+                DRESS_NOBLE_INDECENT,
+                DRESS_NOBLE_NO_JEWELS,
+                DRESS_NOBLE_BATTLE_READY,
+                999  // default
+            };
+
+            foreach (int state in allStates)
+            {
+                string msg = GetDressCodeStatusText(state);
+                DaggerfallUI.MessageBox(msg);
+            }
+        }
+
+        void DebugPrintAmbientContextInfo()
+        {
+            List<string> lines = new List<string>();
+
+            var enterExit = GameManager.Instance.PlayerEnterExit;
+            var playerGPS = GameManager.Instance.PlayerGPS;
+            var playerEntity = GameManager.Instance.PlayerEntity;
+
+            lines.Add("[DressCode Debug]");
+            lines.Add($"IsPlayingGame: {GameManager.Instance.IsPlayingGame()}");
+            lines.Add($"InGameHour: {DaggerfallUnity.Instance.WorldTime.Now.Hour:F1}");
+            lines.Add($"IsNight (IsPlayerInDarkness): {enterExit.IsPlayerInDarkness}");
+            lines.Add($"IsPlayerInside: {enterExit.IsPlayerInside}");
+            lines.Add($"IsPlayerInsideBuilding: {enterExit.IsPlayerInsideBuilding}");
+            lines.Add($"IsPlayerInsideDungeon: {enterExit.IsPlayerInsideDungeon}");
+            lines.Add($"IsPlayerInTown (exterior): {playerGPS.IsPlayerInTown()}");
+
+            string context = GetCurrentContextGroup();
+            lines.Add($"Calculated Context Group: {context}");
+
+            if (enterExit.IsPlayerInsideBuilding)
+            {
+                lines.Add($"BuildingType: {enterExit.BuildingType}");
+                var bld = enterExit.BuildingDiscoveryData;
+                lines.Add($"BuildingKey: {bld.buildingKey} (0 = forced entry)");
+                lines.Add($"Building Name: {bld.displayName}");
+                lines.Add($"Location Name: {GameManager.Instance.PlayerGPS.CurrentLocation.Name}");
+            }
+
+            uint facId = enterExit.FactionID;
+            lines.Add($"Faction ID: {facId}");
+
+            if (playerEntity != null)
+            {
+                FactionFile.FactionData factionData;
+                bool ok = playerEntity.FactionData.GetFactionData((int)facId, out factionData);
+                if (ok)
+                {
+                    lines.Add($"Faction Name: {factionData.name}");
+                    lines.Add($"Faction Type: {factionData.type}");
+                    lines.Add($"Reputation: {playerEntity.FactionData.GetReputation((int)facId)}");
+                }
+                else
+                {
+                    lines.Add("No faction data found for this ID.");
+                }
+            }
+
+            if (!string.IsNullOrEmpty(context))
+            {
+                string dressKey = GetDressCodeStateKey(clothingState);
+                string gender = playerEntity.Gender == Genders.Male ? "M" : "F";
+                string exampleKey = $"ambient_{context}_{dressKey}_{gender}_0";
+                lines.Add($"Sample Ambient Key: {exampleKey}");
+            }
+
+            var messageBox = new DaggerfallMessageBox(DaggerfallUI.UIManager);
+            messageBox.SetText(lines.ToArray());
+            messageBox.ClickAnywhereToClose = true;
+            messageBox.Show();
         }
 
         #endregion
