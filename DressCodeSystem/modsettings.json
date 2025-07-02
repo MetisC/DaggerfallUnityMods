@@ -44,8 +44,15 @@
                     "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
                 },
                 {
-                    "Min": 0,
-                    "Max": 120,
+                    "Value": true,
+                    "Name": "EnableAmbientContextText",
+                    "Description": "Enable ambient context messages regarding character's outfit.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                {
+                    "Min": 10,
+                    "Max": 500,
                     "Value": 25,
                     "Name": "AmbientContextTextFrequency",
                     "Description": "Defines the minimum interval between ambient context messages. A value of 0 disables them completely. Lower values allow more frequent messages.",

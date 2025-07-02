@@ -98,6 +98,7 @@ namespace DressCodeSystem
         private bool nudityEnabled = true;
 
         // Frequency ambient texts
+        private bool enableAmbientContextText = true;
         private int ambientContextTextFrequency = 25;
 
         // Shows a message with the dress code after closing inventory
@@ -125,7 +126,7 @@ namespace DressCodeSystem
             StartGameBehaviour.OnStartGame += StartSaver_OnStartGame;
             DaggerfallUI.UIManager.OnWindowChange += UIManager_OnWindowChange;
             SaveLoadManager.OnLoad += SaveLoadManager_OnLoad;
-
+            PlayerEnterExit.OnTransitionInterior += PlayerEnterExit_OnTransitionInterior;
         }
 
         private void LoadSettings(ModSettings settings, ModSettingsChange change)
@@ -142,8 +143,9 @@ namespace DressCodeSystem
             if (change.HasChanged("General", "IgnoreQuestCharacters"))
                 ignoreQuestCharacters = settings.GetValue<bool>("General", "IgnoreQuestCharacters");
 
-            if (change.HasChanged("General", "AmbientContextTextFrequency"))
+            if (change.HasChanged("General", "EnableAmbientContextText"))
             {
+                enableAmbientContextText = settings.GetValue<bool>("General", "EnableAmbientContextText");
                 ambientContextTextFrequency = settings.GetValue<int>("General", "AmbientContextTextFrequency");
                 RestartAmbientRoutine();
             }
@@ -176,13 +178,29 @@ namespace DressCodeSystem
                 clothingChecker = StartCoroutine(CheckClothingRoutine());
         }
 
+        private bool isAmbientRunning = false;
+
         void RestartAmbientRoutine()
         {
-            if (ambientTextDisplay != null || ambientContextTextFrequency == 0)
+            // Stop old coroutine if running
+            if (ambientTextDisplay != null)
+            {
                 StopCoroutine(ambientTextDisplay);
+                ambientTextDisplay = null;
+                isAmbientRunning = false;
+            }
 
-            if (ambientContextTextFrequency > 0)
-                ambientTextDisplay = StartCoroutine(ShowAmbientTextDisplay());
+            // Don't start new one if disabled
+            if (!enableAmbientContextText)
+            {
+                if (printDebugText)
+                    DaggerfallUI.AddHUDText("[AmbientText] Disabled in config - coroutine not started", 2f);
+                return;
+            }
+
+            // Start coroutine
+            ambientTextDisplay = StartCoroutine(ShowAmbientTextDisplay());
+            isAmbientRunning = true;
         }
 
         #endregion
@@ -1050,6 +1068,10 @@ namespace DressCodeSystem
 
         IEnumerator ShowAmbientTextDisplay()
         {
+
+            if (!enableAmbientContextText)
+                yield break;
+
             string lastKeyUsed = null;
 
             while (true)
@@ -1082,14 +1104,13 @@ namespace DressCodeSystem
                     bool isStreetAndDay = isStreet && !isDark;
 
                     bool isInside = GameManager.Instance.PlayerEnterExit.IsPlayerInsideBuilding;
-                    bool isForcedEntry = isInside && GameManager.Instance.PlayerEnterExit.BuildingDiscoveryData.buildingKey == 0;
-                    bool isValidInterior = isInside && !isForcedEntry;
+                    bool isValidInterior = isInside && !IsForcedEntry();
 
                     if (printDebugText)
                     {
                         DaggerfallUI.AddHUDText("[Ambient] Hour: " + DaggerfallUnity.Instance.WorldTime.Now.Hour.ToString("F1"), 2f);
                         DaggerfallUI.AddHUDText("[Ambient] IsDark: " + isDark + ", IsStreet: " + isStreet + ", IsStreetAndDay: " + isStreetAndDay, 2f);
-                        DaggerfallUI.AddHUDText("[Ambient] IsInside: " + isInside + ", ForcedEntry: " + isForcedEntry + ", IsValidInterior: " + isValidInterior, 2f);
+                        DaggerfallUI.AddHUDText("[Ambient] IsInside: " + isInside + ", ForcedEntry: " + IsForcedEntry() + ", IsValidInterior: " + isValidInterior, 2f);
                     }
 
                     if (!isStreetAndDay && !isValidInterior)
@@ -1472,6 +1493,150 @@ namespace DressCodeSystem
             messageBox.ClickAnywhereToClose = true;
             messageBox.Show();
         }
+
+        #endregion
+
+        #region Restricted Clothes Zones
+
+        private void PlayerEnterExit_OnTransitionInterior(PlayerEnterExit.TransitionEventArgs args)
+        {
+            if (!enforceDressCodeInSensitiveAreas)
+            {
+                if (printDebugText)
+                    DaggerfallUI.AddHUDText("[TransitionMessage] Config disabled - skipping check", 2f);
+                return;
+            }
+
+            if (IsForcedEntry())
+            {
+                if (printDebugText)
+                    DaggerfallUI.AddHUDText("[TransitionMessage] Forced entry detected - skipping check", 2f);
+                return;
+            }
+
+            UpdateClothingState();
+            string context = GetCurrentContextGroup();
+
+            if (printDebugText)
+                DaggerfallUI.AddHUDText("[TransitionMessage] Context: " + context, 2f);
+
+            if (string.IsNullOrEmpty(context))
+            {
+                if (printDebugText)
+                    DaggerfallUI.AddHUDText("[TransitionMessage] Context is null or unknown - skipping", 2f);
+                return;
+            }
+
+            if (IsAccessAllowed(context, clothingState))
+            {
+                if (printDebugText)
+                    DaggerfallUI.AddHUDText("[TransitionMessage] Clothing is acceptable - no warning needed", 2f);
+                return;
+            }
+
+            string key = $"dresswarning_{context}";
+            string template = mod.Localize(key);
+
+            if (printDebugText)
+                DaggerfallUI.AddHUDText("[TransitionMessage] Localized key: " + key, 2f);
+
+            if (string.IsNullOrEmpty(template) || template.StartsWith("No translation"))
+            {
+                if (printDebugText)
+                    DaggerfallUI.AddHUDText("[TransitionMessage] No message found or translation missing", 2f);
+                return;
+            }
+
+            string message = template.Replace("%d", crimeGracePeriod.ToString());
+
+            if (printDebugText)
+                DaggerfallUI.AddHUDText("[TransitionMessage] Message: " + message, 2f);
+
+            DaggerfallUI.MessageBox(message);
+
+            if (printDebugText)
+                DaggerfallUI.AddHUDText("[TransitionMessage] Message Showed??");
+        }
+
+        /// <summary>
+        /// Determines if the given dress code is appropriate for the specified context.
+        /// Returns true if access should be allowed, false if a warning should be triggered.
+        /// </summary>
+        private bool IsAccessAllowed(string context, int dressCode)
+        {
+            switch (context)
+            {
+                case "CASTLE":
+                case "GROUPINTERIOR_STRICT":
+                    // Require full or noble/religious attire.
+                    return dressCode == DRESS_COMMONER_FULL ||
+                           dressCode == DRESS_NOBLE_FULL ||
+                           dressCode == DRESS_NOBLE_NO_JEWELS ||
+                           dressCode == DRESS_NOBLE_BATTLE_READY ||
+                           dressCode == DRESS_RELIGIOUS_GARB;
+
+                case "GROUPINTERIOR_LIBERAL":
+                case "TAVERN":
+                    // Fully permissive – even nudity is accepted.
+                    return true;
+
+                case "HOUSE":
+                case "SHOP":
+                    // Deny if fully nude or exposing top/bottom regardless of armor.
+                    switch (dressCode)
+                    {
+                        case DRESS_FULLY_NUDE:
+                        case DRESS_COMMONER_TOPLESS:
+                        case DRESS_COMMONER_BOTTOMLESS:
+                        case DRESS_ARMORED_TOPLESS:
+                        case DRESS_ARMORED_BOTTOMLESS:
+                            return false;
+                        default:
+                            return true;
+                    }
+
+                case "STREET":
+                default:
+                    return true;
+            }
+        }
+
+        /// <summary>
+        /// Determines if player has entered a building by force (e.g., at night when it's supposed to be closed).
+        /// Only applies to specific building types typically closed at night.
+        /// </summary>
+        private bool IsForcedEntry()
+        {
+            var enterExit = GameManager.Instance.PlayerEnterExit;
+            if (!enterExit.IsPlayerInsideBuilding)
+                return false;
+
+            // Skip if it's not night
+            if (!DaggerfallUnity.Instance.WorldTime.Now.IsNight)
+                return false;
+
+            DFLocation.BuildingTypes type = enterExit.BuildingType;
+
+            // These building types are considered closed at night
+            switch (type)
+            {
+                case DFLocation.BuildingTypes.Alchemist:
+                case DFLocation.BuildingTypes.Armorer:
+                case DFLocation.BuildingTypes.Bookseller:
+                case DFLocation.BuildingTypes.ClothingStore:
+                case DFLocation.BuildingTypes.FurnitureStore:
+                case DFLocation.BuildingTypes.GemStore:
+                case DFLocation.BuildingTypes.GeneralStore:
+                case DFLocation.BuildingTypes.PawnShop:
+                case DFLocation.BuildingTypes.WeaponSmith:
+                case DFLocation.BuildingTypes.Bank:
+                case DFLocation.BuildingTypes.Library:
+                    return true;
+            }
+
+            return false;
+        }
+
 
         #endregion
 
