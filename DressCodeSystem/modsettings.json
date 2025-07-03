@@ -30,14 +30,7 @@
                 {
                     "Value": true,
                     "Name": "EnableDressCommentsBeforeTalk",
-                    "Description": "If enabled, NPCs may comment on the player's clothing and deny conversation before dialogue begins.",
-                    "$version": "v1",
-                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
-                },
-                {
-                    "Value": true,
-                    "Name": "IgnoreQuestCharacters",
-                    "Description": "If enabled, quest-related NPCs won't be affected by this system.",
+                    "Description": "If enabled, NPCs may comment on the player's clothing.",
                     "$version": "v1",
                     "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
                 },
@@ -53,14 +46,14 @@
                     "Max": 500,
                     "Value": 25,
                     "Name": "AmbientContextTextFrequency",
-                    "Description": "Defines the minimum interval between ambient context messages. A value of 0 disables them completely. Lower values allow more frequent messages.",
+                    "Description": "Defines the minimum interval between ambient context messages.",
                     "$version": "v1",
                     "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
                 },
                 {
                     "Value": true,
                     "Name": "EnforceDressCodeInSensitiveAreas",
-                    "Description": "Restricts access to castles, temples, and noble residences unless the player's clothing is appropriate. Shops and taverns are more permissive, but nudity is always denied.",
+                    "Description": "Displays a warning message when entering sensitive locations while dressed inappropriately.",
                     "$version": "v1",
                     "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
                 },
@@ -79,13 +72,6 @@
                     "Description": "Defines how many seconds the player has to dress before guards intervene. Only applies when \"Enable Dress Code Crime\" is active.",
                     "$version": "v1",
                     "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
-                },
-                {
-                    "Value": true,
-                    "Name": "AffectFactionReputationByDress",
-                    "Description": "If enabled, refusing to dress appropriately will decrease reputation with certain factions (temples, nobles, merchants, etc.).",
-                    "$version": "v1",
-                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
                 }
             ],
             "$version": "v1"

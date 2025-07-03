@@ -1,10 +1,10 @@
 {
     "ModTitle": "Dress Code System",
-    "ModVersion": "0.0001",
+    "ModVersion": "1.0",
     "ModAuthor": "MC",
-    "ContactInfo": "",
+    "ContactInfo": "Nexus Mod",
     "DFUnity_Version": "1.1.0",
-    "ModDescription": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+    "ModDescription": "Adds a dynamic clothing rules system to Daggerfall Unity.\nNPCs comment on your outfit, may refuse to talk, trigger warnings, or even alert the guards if you're dressed inappropriately.",
     "GUID": "24a4311e-ea19-440f-8f47-6b861f7b86b7",
     "Files": [
         "Assets/Game/Mods/DressCodeSystem/DressCodeSystem/DressCodeSystem.cs",

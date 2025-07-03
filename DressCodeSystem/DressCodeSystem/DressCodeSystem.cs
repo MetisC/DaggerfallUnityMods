@@ -100,11 +100,7 @@ namespace DressCodeSystem
         private bool enableDressCodeCrime;
         private int crimeGracePeriod;
 
-        // Activated, quest's NPC won't be ignored
-        private bool ignoreQuestCharacters = true;
         private bool enableDressCommentsBeforeTalk;
-        private bool affectFactionReputationByDress;
-        
 
         void Awake()
         {
@@ -128,7 +124,6 @@ namespace DressCodeSystem
 
         private void LoadSettings(ModSettings settings, ModSettingsChange change)
         {
-
             if (change.HasChanged("General", "Nudity"))
                 nudityEnabled = settings.GetValue<bool>("General", "Nudity");
 
@@ -153,15 +148,6 @@ namespace DressCodeSystem
                 enableDressCodeCrime = settings.GetValue<bool>("General", "EnableDressCodeCrime");
                 crimeGracePeriod = settings.GetValue<int>("General", "CrimeGracePeriod");
             }
-
-            if (change.HasChanged("General", "AffectFactionReputationByDress"))
-                affectFactionReputationByDress = settings.GetValue<bool>("General", "AffectFactionReputationByDress");
-
-            // ----------------------------------
-
-            
-            if (change.HasChanged("General", "IgnoreQuestCharacters"))
-                ignoreQuestCharacters = settings.GetValue<bool>("General", "IgnoreQuestCharacters");
 
             if (change.HasChanged("General", "EnableDressCommentsBeforeTalk"))
                 enableDressCommentsBeforeTalk = settings.GetValue<bool>("General", "EnableDressCommentsBeforeTalk");
@@ -198,6 +184,7 @@ namespace DressCodeSystem
         }
 
         private TextLabel dresscodeStatusLabel = null;
+        private bool hasBlockedTalkWindow = false;
 
         private void UIManager_OnWindowChange(object sender, EventArgs e)
         {
@@ -262,38 +249,121 @@ namespace DressCodeSystem
                 dresscodeStatusLabel.Position = new Vector2(centeredX, 193);
 
             }
-            /*  DISABLED text on inventory
-            if (DaggerfallUI.UIManager.TopWindow is DaggerfallInventoryWindow inventoryWindow)
+
+            // ⛔ Block conversation if Dress Code is violated when talk window opens
+            if (enableDressCommentsBeforeTalk && currentWindow is DaggerfallTalkWindow)
             {
-                // Remove if already exists
-                if (dresscodeStatusLabel != null)
-                {
-                    inventoryWindow.NativePanel.Components.Remove(dresscodeStatusLabel);
-                    dresscodeStatusLabel = null;
-                }
+                PrintDebug("[TalkBlock] DaggerfallTalkWindow detected.");
 
-                // Update dresscode state
                 UpdateClothingState();
+                PrintDebug($"[TalkBlock] Updated clothing state: {clothingState}");
 
-                // Create new label at temporary position
-                dresscodeStatusLabel = DaggerfallUI.AddTextLabel(
-                    DaggerfallUI.DefaultFont,
-                    Vector2.zero,
-                    GetDressCodeStatusText(clothingState),
-                    inventoryWindow.NativePanel);
+                string context = GetCurrentContextGroup();
+                PrintDebug($"[TalkBlock] Current context: {context}");
 
-                // Visual setup
-                dresscodeStatusLabel.TextColor = DaggerfallUI.DaggerfallDefaultTextColor;
-                dresscodeStatusLabel.ShadowPosition = Vector2.zero;
-                dresscodeStatusLabel.BackgroundColor = Color.black;
+                if (!string.IsNullOrEmpty(context))
+                {
+                    bool allowed = IsAccessAllowed(context, clothingState);
+                    PrintDebug($"[TalkBlock] IsAccessAllowed result: {allowed}");
 
-                // Position adjusted for inventory screen (shifted left)
-                float textWidth = dresscodeStatusLabel.TextWidth;
-                float centeredX = (inventoryWindow.NativePanel.InteriorWidth - textWidth) * 0.5f - 85;
-                dresscodeStatusLabel.Position = new Vector2(centeredX, 193);
+                    if (!allowed)
+                    {
+                        PrintDebug("[TalkBlock] Outfit not acceptable. Blocking conversation.");
+                        DaggerfallUI.UIManager.PopWindow();
+
+                        int randomIndex = UnityEngine.Random.Range(0, 20); // total de frases
+                        string messageTalkBlock = mod.Localize("talkblock_" + randomIndex);
+                        if (string.IsNullOrEmpty(messageTalkBlock) || messageTalkBlock.StartsWith("No translation"))
+                            messageTalkBlock = "‘I don't talk to walking wardrobe malfunctions.’";
+
+                        DaggerfallUI.MessageBox(messageTalkBlock);
+                        PrintDebug($"[TalkBlock] Block message shown: {messageTalkBlock}");
+                        return;
+                    }
+
+                    // ✅ Outfit allowed – check for verbal reaction
+                    int[] group_REVEALING = new int[]
+                    {
+                        DRESS_FULLY_NUDE,
+                        DRESS_COMMONER_TOPLESS,
+                        DRESS_COMMONER_BOTTOMLESS,
+                        DRESS_ARMORED_TOPLESS,
+                        DRESS_ARMORED_BOTTOMLESS,
+                    };
+
+                    string npcType = DetectSimpleNPCTypeGrouped(); // commoner, noble, guard
+                    int index = UnityEngine.Random.Range(0, 5);
+                    string group = "";
+                    string key = "";
+
+                    if (Array.Exists(group_REVEALING, s => s == clothingState))
+                    {
+                        group = "REVEALING";
+                        key = $"talkreact_{context}_{group}_{npcType}_{index}";
+                    }
+                    else if (clothingState == DRESS_NOBLE_INDECENT)
+                    {
+                        group = "NOBLE_INDECENT";
+                        key = $"talkreact_{context}_{group}_{npcType}_{index}";
+                    }
+
+                    if (hasBlockedTalkWindow)
+                    {
+                        hasBlockedTalkWindow = false;
+                        return;
+                    }
+
+                    string message = mod.Localize(key);
+                    if (!string.IsNullOrEmpty(message) && !message.StartsWith("No translation"))
+                    {
+                        hasBlockedTalkWindow = true;
+                        DaggerfallUI.MessageBox(message);
+                        PrintDebug($"[TalkReact] Message shown: {message}");
+                    }
+                    else
+                    {
+                        PrintDebug($"[TalkReact] No message for key: {key}");
+                    }
+
+                }
             }
-            */
+
         }
+
+        private string DetectSimpleNPCTypeGrouped()
+        {
+            if (!TalkManager.HasInstance)
+                return "commoner"; // fallback
+
+            if (TalkManager.Instance.CurrentNPCType == TalkManager.NPCType.Static && TalkManager.Instance.StaticNPC != null)
+            {
+                var npc = TalkManager.Instance.StaticNPC;
+                string name = npc.DisplayName?.ToLowerInvariant();
+
+                if (name.Contains("guard") || name.Contains("watch"))
+                    return "guard";
+                if (name.Contains("lord") || name.Contains("noble"))
+                    return "noble";
+
+                return "commoner";
+            }
+            else if (TalkManager.Instance.CurrentNPCType == TalkManager.NPCType.Mobile && TalkManager.Instance.MobileNPC != null)
+            {
+                var npc = TalkManager.Instance.MobileNPC;
+
+                if (npc.IsGuard)
+                    return "guard";
+
+                string npcName = npc.name?.ToLowerInvariant();
+                if (npcName?.Contains("knight") == true || npcName?.Contains("noble") == true)
+                    return "noble";
+
+                return "commoner";
+            }
+
+            return "commoner";
+        }
+
 
         private void StartSaver_OnStartGame(object sender, EventArgs e)
         {
@@ -1523,6 +1593,19 @@ namespace DressCodeSystem
         /// </summary>
         private bool IsAccessAllowed(string context, int dressCode)
         {
+            // Allow high reputation players to bypass dress code restrictions
+            if (GameManager.Instance.PlayerEnterExit.IsPlayerInsideBuilding)
+            {
+                var player = GameManager.Instance.PlayerEntity;
+                int factionId = (int)GameManager.Instance.PlayerEnterExit.FactionID;
+
+                // 80+ means you're essentially a top-rank member like Archmage or Grandmaster
+                if (player.FactionData.GetReputation((int)factionId) >= 80)
+                {
+                    PrintDebug($"[DressCode] High reputation ({player.FactionData.GetReputation((int)factionId)}) with faction {factionId}. Dress code ignored.");
+                    return true;
+                }
+            }
             switch (context)
             {
                 case "CASTLE":
@@ -1688,7 +1771,6 @@ namespace DressCodeSystem
                     break;
             }
         }
-
 
         #endregion
 
