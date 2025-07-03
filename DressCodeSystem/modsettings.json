@@ -15,19 +15,17 @@
                 },
                 {
                     "Value": true,
-                    "Name": "Nudity",
-                    "Description": "If enabled, characters without any clothing will be described as \"nude\". If disabled, they will be described as \"wearing only underwear\".",
+                    "Name": "ShowCurrentAppearanceInCharacterSheet",
+                    "Description": "Display the current outfit status (social type and appropriateness) in the character's sheet.",
                     "$version": "v1",
                     "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
                 },
                 {
-                    "Min": 0,
-                    "Max": 60,
-                    "Value": 5,
-                    "Name": "ClothingUpdateFrequency",
-                    "Description": "How often (in seconds) the system reevaluates the player's outfit. A value of 0 means only updates after changing the equipment.",
+                    "Value": true,
+                    "Name": "Nudity",
+                    "Description": "If enabled, characters without any clothing will be described as \"nude\". If disabled, they will be described as \"wearing only underwear\".",
                     "$version": "v1",
-                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
                 },
                 {
                     "Value": true,

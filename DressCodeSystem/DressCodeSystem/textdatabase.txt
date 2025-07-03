@@ -16,11 +16,16 @@ dresscode_noble_no_jewels,"Noble clothes without jewelry. [Noble - Inappropriate
 dresscode_noble_battle_ready,"Noble attire with armor. [Noble - Appropriate]"
 dresscode_unknown,"Unrecognized dress code state ({0}). [Inappropriate]"
 
-dresswarning_CASTLE,"Guards eye you with suspicion. You have %d seconds to dress properly or leave this noble place."
-dresswarning_SHOP,"The shopkeeper frowns at your appearance. You have %d seconds to cover yourself or get out."
-dresswarning_HOUSE,"The homeowner looks shocked. You have %d seconds to dress decently or leave their home."
-dresswarning_TAVERN,"Some patrons glance at you, others laugh. You have %d seconds to put on some clothes if you want to stay."
-dresswarning_GROUPINTERIOR_STRICT,"This place demands proper attire. You have %d seconds to dress appropriately or face consequences."
+dresswarning_CASTLE,"Guards eye you with suspicion. Your appearance is unacceptable in this noble place."
+dresswarning_SHOP,"The shopkeeper frowns at your appearance. You are not welcome dressed like that."
+dresswarning_HOUSE,"The homeowner looks shocked by your attire. This is no way to enter someone's home."
+dresswarning_TAVERN,"Some patrons glance at you, others laugh. Perhaps this isn't the best way to enter a tavern."
+dresswarning_GROUPINTERIOR_STRICT,"This place demands proper attire. Your current appearance is not appropriate."
+
+dresscrime_grace,"You have %d seconds to dress properly or leave, or face the consequences."
+
+dresscode_calm_message,"Your decent appearance calms the situation. No further action will be taken."
+dresscrime_alert_guard,"You ignored the warning. You had your chance. The guards are coming."
 
 ambient_STREET_FULLY_NUDE_M_0,"A child points at you and bursts into laughter. His mother drags him away, horrified."
 ambient_STREET_FULLY_NUDE_M_1,"An old lady mutters something about 'the youth these days' and avoids eye contact."
