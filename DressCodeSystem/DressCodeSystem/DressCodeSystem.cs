@@ -1398,15 +1398,15 @@ namespace DressCodeSystem
                 case DRESS_COMMONER_FULL:
                     // Don't show messages when dressed as a commoner in regular places
                     // Only show if in noble/strict environments
-                    return context == "CASTLE" || context == "GROUPINTERIOR_STRICT";
+                    return context == "CASTLE";
 
                 case DRESS_NOBLE_FULL:
                     // Don't show reactions in noble/strict places (expected attire)
-                    return context != "CASTLE" && context != "GROUPINTERIOR_STRICT";
+                    return context != "CASTLE";
 
                 case DRESS_RELIGIOUS_GARB:
                     // Don't comment on religious garb in strict (temple-like) areas
-                    return context != "GROUPINTERIOR_STRICT";
+                    return true;
 
                 case DRESS_NOBLE_NO_JEWELS:
                     // Always react to lack of noble jewelry
