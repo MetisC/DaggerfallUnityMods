@@ -1203,6 +1203,13 @@ namespace DressCodeSystem
                         continue;
                     }
 
+                    if (!HasNearbyAudience())
+                    {
+                        PrintDebug("[Ambient] No nearby NPC audience detected - skipping");
+                        yield return WaitWithVariation();
+                        continue;
+                    }
+
                     string dressKey = GetDressCodeStateKey(clothingState);
                     string gender = GameManager.Instance.PlayerEntity.Gender == Genders.Male ? "M" : "F";
 
@@ -1247,6 +1254,42 @@ namespace DressCodeSystem
             float variation = UnityEngine.Random.Range(-2f, 2f);
             float waitTime = Mathf.Max(10f, (float)ambientContextTextFrequency + variation);
             return new WaitForSeconds(waitTime);
+        }
+
+        private bool HasNearbyAudience(float radius = 12f)
+        {
+            var playerObject = GameManager.Instance?.PlayerObject;
+            if (playerObject == null)
+                return false;
+
+            Vector3 playerPosition = playerObject.transform.position;
+            float sqrRadius = radius * radius;
+
+            var staticNpcs = GameObject.FindObjectsOfType<StaticNPC>();
+            foreach (var npc in staticNpcs)
+            {
+                if (npc == null || !npc.gameObject.activeInHierarchy)
+                    continue;
+
+                if ((npc.transform.position - playerPosition).sqrMagnitude <= sqrRadius)
+                    return true;
+            }
+
+            var entityBehaviours = GameObject.FindObjectsOfType<DaggerfallEntityBehaviour>();
+            foreach (var behaviour in entityBehaviours)
+            {
+                if (behaviour == null || behaviour == GameManager.Instance.PlayerEntityBehaviour || !behaviour.gameObject.activeInHierarchy)
+                    continue;
+
+                var entity = behaviour.Entity;
+                if (entity == null || entity.EntityType != EntityTypes.MobilePerson)
+                    continue;
+
+                if ((behaviour.transform.position - playerPosition).sqrMagnitude <= sqrRadius)
+                    return true;
+            }
+
+            return false;
         }
 
         private string GetCurrentContextGroup()
@@ -1615,6 +1658,8 @@ namespace DressCodeSystem
                            dressCode == DRESS_NOBLE_FULL ||
                            dressCode == DRESS_NOBLE_NO_JEWELS ||
                            dressCode == DRESS_NOBLE_BATTLE_READY ||
+                           dressCode == DRESS_BATTLE_READY ||
+                           dressCode == DRESS_ARMORED_ONLY ||
                            dressCode == DRESS_RELIGIOUS_GARB;
 
                 case "GROUPINTERIOR_LIBERAL":
