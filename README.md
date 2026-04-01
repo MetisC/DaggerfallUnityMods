@@ -1,43 +1,21 @@
-# Dress Code System - Daggerfall Unity Mod
+# Daggerfall Unity Mods by MC
 
-**Dress Code System** is a mod for **Daggerfall Unity** that adds a social and legal clothing system. What you wear (or don’t) finally matters!
+Este repositorio reúne **todos los mods que he desarrollado** para Daggerfall Unity.
 
-## 🎯 What Does It Do?
+## Mods incluidos
 
-- 🧾 **Clothing classification**: Detects if you’re dressed like a noble, commoner, warrior… or completely naked.
-- 🗺️ **Context-sensitive reactions**: Your outfit matters more in a temple than in a tavern.
-- 🚷 **Access restrictions**: Get blocked from certain areas if you're dressed inappropriately.
-- 🚨 **Crime system**: Dress offensively in sacred or noble places and the guards may come for you.
-- 📉 **Reputation penalties**: Ignoring warnings affects your standing with factions.
-- 🗣️ **Ambient and dialogue reactions**: NPCs comment on your attire, and some may refuse to speak with you.
+- **Dress Code System**
+  - Sistema social/legal de vestimenta: clasificación de atuendos, reacciones de NPC, advertencias en zonas sensibles y consecuencias legales/reputación.
+- **Travel Map Enhancements**
+  - Adaptación a mod de la funcionalidad del cambio original enlazado: panel de localizaciones de misión, panel de favoritos y teclado virtual opcional en el mapa de viaje.
 
-## 📦 Requirements
+## Estructura
 
-- Daggerfall Unity v1.1.1 or higher
-- Mods system enabled
+- `DressCodeSystem/` → Código y metadatos del mod Dress Code System.
+- `TravelMapEnhancements/` → Código y metadatos del nuevo mod de mejoras del mapa de viaje.
 
-## 🛠 Installation
+## Instalación (cada mod)
 
-1. Download the `.dfmod` file from the Releases section.
-2. Drop it into your `Mods` folder inside the Daggerfall Unity installation directory.
-3. Enable the mod from the launcher’s mod menu.
-
-## ⚙️ Configuration
-
-You can configure:
-- Nudity censorship
-- Clothing state display on HUD and character sheet
-- Ambient text frequency
-- Crime and faction penalty systems
-
-Settings are accessible through the in-game mod settings menu.
-
-## 🤝 Contributing
-
-Pull requests and suggestions are welcome! Feel free to report bugs, request features, or help with translations.
-
-## 📜 License
-
-This mod is released under the MIT License.
-
----
+1. Empaqueta cada carpeta como `.dfmod` (según flujo habitual de Daggerfall Unity).
+2. Copia el archivo resultante a la carpeta `Mods` de Daggerfall Unity.
+3. Activa el mod desde el launcher.
