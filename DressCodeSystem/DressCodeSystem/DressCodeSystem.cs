@@ -1265,6 +1265,7 @@ namespace DressCodeSystem
             Vector3 playerPosition = playerObject.transform.position;
             float sqrRadius = radius * radius;
 
+            // 1. Detectar NPCs estáticos (tenderos, gente de tabernas, palacios...)
             var staticNpcs = GameObject.FindObjectsOfType<StaticNPC>();
             foreach (var npc in staticNpcs)
             {
@@ -1275,17 +1276,15 @@ namespace DressCodeSystem
                     return true;
             }
 
-            var entityBehaviours = GameObject.FindObjectsOfType<DaggerfallEntityBehaviour>();
-            foreach (var behaviour in entityBehaviours)
+            // 2. Detectar NPCs móviles (la peña que camina por la calle)
+            // Usamos MobilePersonNPC en vez de buscar EntityTypes inexistentes
+            var mobileNpcs = GameObject.FindObjectsOfType<MobilePersonNPC>();
+            foreach (var mobile in mobileNpcs)
             {
-                if (behaviour == null || behaviour == GameManager.Instance.PlayerEntityBehaviour || !behaviour.gameObject.activeInHierarchy)
+                if (mobile == null || !mobile.gameObject.activeInHierarchy)
                     continue;
 
-                var entity = behaviour.Entity;
-                if (entity == null || entity.EntityType != EntityTypes.MobilePerson)
-                    continue;
-
-                if ((behaviour.transform.position - playerPosition).sqrMagnitude <= sqrRadius)
+                if ((mobile.transform.position - playerPosition).sqrMagnitude <= sqrRadius)
                     return true;
             }
 
