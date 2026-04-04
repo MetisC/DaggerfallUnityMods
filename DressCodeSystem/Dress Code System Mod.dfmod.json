@@ -1,6 +1,6 @@
 {
     "ModTitle": "Dress Code System",
-    "ModVersion": "1.1",
+    "ModVersion": "1.2",
     "ModAuthor": "MC",
     "ContactInfo": "Nexus Mod",
     "DFUnity_Version": "1.1.0",
@@ -9,6 +9,7 @@
     "Files": [
         "Assets/Game/Mods/DressCodeSystem/DressCodeSystem/DressCodeSystem.cs",
         "Assets/Game/Mods/DressCodeSystem/modsettings.json",
-        "Assets/Game/Mods/DressCodeSystem/DressCodeSystem/textdatabase.txt"
+        "Assets/Game/Mods/DressCodeSystem/DressCodeSystem/textdatabase.txt",
+        "Assets/Game/Mods/DressCodeSystem/Dress Code System Mod.dfmod.json"
     ]
 }

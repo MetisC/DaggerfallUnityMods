@@ -3,36 +3,29 @@
     "Sections": [
         {
             "Name": "General",
-            "Description": "",
+            "Description": "General settings for the Travel Dashboard.",
             "IsAdvanced": false,
             "Keys": [
                 {
+                    "Value": "P",
+                    "Name": "ToggleKey",
+                    "Description": "The hotkey used to open the Travel Dashboard window.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.TextKey"
+                },
+                {
                     "Value": true,
                     "Name": "ShowRelevantQuestLocations",
-                    "Description": "Show quest-related locations panel in the travel map.",
+                    "Description": "Display locations related to your active quests in the dashboard.",
                     "$version": "v1",
                     "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
                 },
                 {
                     "Value": true,
                     "Name": "ShowFavoriteLocations",
-                    "Description": "Show favorite locations panel in the travel map.",
+                    "Description": "Display your personal list of favorite locations in the dashboard.",
                     "$version": "v1",
                     "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
-                },
-                {
-                    "Value": false,
-                    "Name": "ShowTravelMapVirtualKeyboard",
-                    "Description": "Show virtual keyboard in the travel map.",
-                    "$version": "v1",
-                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
-                },
-                {
-                    "Value": "",
-                    "Name": "TravelMapFavoriteLocations",
-                    "Description": "Serialized travel-map favorite locations.",
-                    "$version": "v1",
-                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.TextKey"
                 }
             ],
             "$version": "v1"

@@ -1,13 +1,14 @@
 {
     "ModTitle": "Travel Map Enhancements",
-    "ModVersion": "1.0",
+    "ModVersion": "1.2",
     "ModAuthor": "MC",
     "ContactInfo": "Nexus Mod",
     "DFUnity_Version": "1.1.0",
     "ModDescription": "Adds quest-location and favorite-location panels plus an optional virtual keyboard to the travel map.",
-    "GUID": "5f28e24b-e56b-4bae-8614-c9f3b3072be8",
+    "GUID": "15f5ec41-61e1-4bf9-bc97-6c11d4fdc348",
     "Files": [
         "Assets/Game/Mods/TravelMapEnhancements/TravelMapEnhancements/TravelMapEnhancements.cs",
-        "Assets/Game/Mods/TravelMapEnhancements/modsettings.json"
+        "Assets/Game/Mods/TravelMapEnhancements/modsettings.json",
+        "Assets/Game/Mods/TravelMapEnhancements/Travel Map Enhancements Mod.dfmod.json"
     ]
 }
