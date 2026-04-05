@@ -1,0 +1,14 @@
+{
+    "ModTitle": "Virtual Keyboard Injection",
+    "ModVersion": "1.0",
+    "ModAuthor": "MC",
+    "ContactInfo": "Nexus Mod",
+    "DFUnity_Version": "1.1.0",
+    "ModDescription": "Injects a generic virtual keyboard into windows that contain writable text boxes.",
+    "GUID": "aea24644-d8e7-4588-873b-544c6e64a56f",
+    "Files": [
+        "Assets/Game/Mods/VirtualKeyboardInjection/VirtualKeyboardInjection/VirtualKeyboardInjection.cs",
+        "Assets/Game/Mods/VirtualKeyboardInjection/modsettings.json",
+        "Assets/Game/Mods/VirtualKeyboardInjection/Virtual Keyboard Injection Mod.dfmod.json"
+    ]
+}
