@@ -1,0 +1,14 @@
+{
+    "ModTitle": "Tactical Comparison Tooltip",
+    "ModVersion": "1.0",
+    "ModAuthor": "MC",
+    "ContactInfo": "Nexus Mod",
+    "DFUnity_Version": "1.1.0",
+    "ModDescription": "Adds a mirror tooltip in inventory to compare hovered gear against equipped gear and show net equip impact.",
+    "GUID": "cfb18d6d-85c8-426e-9667-edac6486523a",
+    "Files": [
+        "Assets/Game/Mods/TacticalComparisonTooltip/TacticalComparisonTooltip/TacticalComparisonTooltip.cs",
+        "Assets/Game/Mods/TacticalComparisonTooltip/modsettings.json",
+        "Assets/Game/Mods/TacticalComparisonTooltip/Tactical Comparison Tooltip Mod.dfmod.json"
+    ]
+}
