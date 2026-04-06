@@ -11,15 +11,11 @@ Este repositorio reúne **todos los mods que he desarrollado** para Daggerfall U
 - **Virtual Keyboard Injection**
   - Sistema genérico de teclado virtual que detecta automáticamente `TextBox` editables en ventanas activas e inyecta un teclado QWERTY con teclas de espacio y borrado.
 
-- **Tactical Comparison Tooltip**
-  - Tooltip espejo en inventario para comparar el ítem bajo el cursor con el equipo actual del mismo slot, incluyendo impacto neto de precisión/daño, protección/peso y alertas de uso prohibido.
-
 ## Estructura
 
 - `DressCodeSystem/` → Código y metadatos del mod Dress Code System.
 - `TravelMapEnhancements/` → Código y metadatos del mod Travel Map Enhancements.
 - `VirtualKeyboardInjection/` → Código y metadatos del mod Virtual Keyboard Injection.
-- `TacticalComparisonTooltip/` → Código y metadatos del mod Tactical Comparison Tooltip.
 
 ## Instalación (cada mod)
 
