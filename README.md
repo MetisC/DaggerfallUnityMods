@@ -10,12 +10,15 @@ Este repositorio reúne **todos los mods que he desarrollado** para Daggerfall U
   - Adaptación a mod de la funcionalidad del cambio original enlazado: panel de localizaciones de misión, panel de favoritos y teclado virtual opcional en el mapa de viaje.
 - **Virtual Keyboard Injection**
   - Sistema genérico de teclado virtual que detecta automáticamente `TextBox` editables en ventanas activas e inyecta un teclado QWERTY con teclas de espacio y borrado.
+- **Levitation HotKey**
+  - Añade un acceso directo (tecla 'V' por defecto) para activar o desactivar la levitación rápidamente.
 
 ## Estructura
 
 - `DressCodeSystem/` → Código y metadatos del mod Dress Code System.
 - `TravelMapEnhancements/` → Código y metadatos del mod Travel Map Enhancements.
 - `VirtualKeyboardInjection/` → Código y metadatos del mod Virtual Keyboard Injection.
+- `LevitationHotKey/` → Código y metadatos del mod Levitation HotKey.
 
 ## Instalación (cada mod)
 
