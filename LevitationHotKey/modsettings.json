@@ -1,0 +1,18 @@
+{
+    "Version": "1.0",
+    "Sections": [
+        {
+            "Name": "General",
+            "Description": "Ajustes del botón de pánico.",
+            "Keys": [
+                {
+                    "Name": "HotKey",
+                    "Description": "Tecla para activar/desactivar la levitación.",
+                    "Value": "V",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.KeyBindingKey"
+                }
+            ]
+        }
+    ]
+}
