@@ -4,7 +4,7 @@
     "ModAuthor": "MC",
     "ContactInfo": "Nexus Mod",
     "DFUnity_Version": "1.1.1",
-    "ModDescription": "Adds a hotkey (default 'V') to quickly toggle levitation.",
+    "ModDescription": "Adds a hotkey (default 'X') to quickly toggle levitation.",
     "GUID": "449d481f-6c6f-40f7-b463-e28f075d15ed",
     "Files": [
         "Assets/Game/Mods/LevitationHotKey/LevitationHotKey/LevitationHotKeyMain.cs",

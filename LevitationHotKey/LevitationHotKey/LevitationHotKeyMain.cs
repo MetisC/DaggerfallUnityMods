@@ -13,7 +13,7 @@ namespace LevitationHotKey
     {
         static Mod mod;
         static LevitationHotKeyMain instance;
-        static KeyCode toggleKey = KeyCode.V;
+        static KeyCode toggleKey = KeyCode.X;
 
         [Invoke(StateManager.StateTypes.Start, 0)]
         public static void Init(InitParams initParams)
@@ -21,7 +21,7 @@ namespace LevitationHotKey
             mod = initParams.Mod;
             GameObject go = new GameObject(mod.Title);
             instance = go.AddComponent<LevitationHotKeyMain>();
-            DontDestroyOnLoad(go); // Persistencia entre escenas
+            DontDestroyOnLoad(go); // Persist across scenes
         }
 
         private void Awake()
@@ -33,14 +33,24 @@ namespace LevitationHotKey
 
         private void LoadSettings(ModSettings settings, ModSettingsChange change)
         {
-            // Lectura de la tecla desde el archivo modsettings.json
-            toggleKey = settings.GetValue<KeyCode>("General", "HotKey");
+            // Read the configured hotkey as a string to prevent UI crashing
+            string keyString = settings.GetValue<string>("General", "HotKey");
+            try
+            {
+                // Parse the string into a valid Unity KeyCode
+                toggleKey = (KeyCode)System.Enum.Parse(typeof(KeyCode), keyString, true);
+            }
+            catch
+            {
+                Debug.LogWarning("[LevitationHotKey] Invalid key specified in settings, defaulting to X.");
+                toggleKey = KeyCode.X;
+            }
         }
 
         private void Update()
         {
-            // Intercepta la pulsación si el juego no está en pausa
-            if (InputManager.Instance.GetKeyDown(toggleKey) && !GameManager.Instance.IsPlayerPaused)
+            // Check if key is pressed and game is not paused
+            if (InputManager.Instance.GetKeyDown(toggleKey) && !GameManager.IsGamePaused)
             {
                 ToggleLevitation();
             }
@@ -51,31 +61,39 @@ namespace LevitationHotKey
             EntityEffectManager playerEffectManager = GameManager.Instance.PlayerEntityBehaviour.GetComponent<EntityEffectManager>();
             if (playerEffectManager == null) return;
 
-            // Busca el efecto nativo de levitación en el gestor de efectos
-            LiveEffectBundle levitateBundle = playerEffectManager.FindBundle(new Levitate().Key);
+            // Find the active effect directly by its native type
+            Levitate levitateEffect = playerEffectManager.FindIncumbentEffect<Levitate>() as Levitate;
 
-            if (levitateBundle != null)
+            // If the effect exists and has a parent bundle, remove it
+            if (levitateEffect != null && levitateEffect.ParentBundle != null)
             {
-                playerEffectManager.RemoveBundle(levitateBundle); // Desactiva y aterriza
-                DaggerfallUI.AddHUDText("Levitación DESACTIVADA.");
+                playerEffectManager.RemoveBundle(levitateEffect.ParentBundle);
+                DaggerfallUI.AddHUDText("Levitation DISABLED.");
             }
             else
             {
-                // Crea un nuevo bundle de efecto para el jugador
+                // If it doesn't exist, setup the 60-round effect
                 EffectBundleSettings bundleSettings = new EffectBundleSettings();
                 bundleSettings.TargetType = TargetTypes.CasterOnly;
-                bundleSettings.Name = "Levitación de Emergencia";
+                bundleSettings.Name = "Emergency Levitation";
 
                 EffectEntry entry = new EffectEntry();
                 entry.Key = new Levitate().Key;
                 entry.Settings = new EffectSettings();
-                entry.Settings.DurationBase = 60; // Duración: 60 rounds (~1 minuto)
+                entry.Settings.DurationBase = 900; 
+
+                // --- EL PARCHE ANTI PANTALLAZO AZUL ---
+                // Le damos valor a esta variable para que el motor no divida por cero
+                entry.Settings.DurationPerLevel = 1;
 
                 bundleSettings.Effects = new EffectEntry[] { entry };
 
-                // Aplica el efecto ignorando resistencias (BypassResistances)
-                playerEffectManager.AssignBundle(bundleSettings, AssignBundleFlags.BypassResistances);
-                DaggerfallUI.AddHUDText("Levitación ACTIVADA (1 min).");
+                // Pack it into a valid EntityEffectBundle
+                EntityEffectBundle finalBundle = new EntityEffectBundle(bundleSettings, GameManager.Instance.PlayerEntityBehaviour);
+
+                // Apply it bypassing saving throws
+                playerEffectManager.AssignBundle(finalBundle, AssignBundleFlags.BypassSavingThrows);
+                DaggerfallUI.AddHUDText("Levitation ENABLED");
             }
         }
     }
