@@ -19,7 +19,6 @@ namespace TravelMapEnhancements
         static Mod mod;
         static KeyCode toggleKey = KeyCode.P;
 
-        // EL FLAG DEL CONFIG: Ponlo a false desde tus settings para ocultar todo lo de Favoritos
         public static bool showFavorites = true;
 
         static TravelDashboardWindow dashboardInstance;
@@ -42,15 +41,12 @@ namespace TravelMapEnhancements
 
         void Update()
         {
-            // FIX DEL CURSOR Y EL TOGGLE:
             if (Input.GetKeyUp(toggleKey))
             {
-                // 1. Si la ventana ya existe y es la que está activa arriba del todo, ¡la chapamos!
                 if (dashboardInstance != null && DaggerfallUI.UIManager.TopWindow == dashboardInstance)
                 {
                     dashboardInstance.CloseWindow();
                 }
-                // 2. Si no, y estamos en pleno juego sin otros menús estorbando, la abrimos
                 else if (GameManager.Instance.IsPlayingGame() && DaggerfallUI.UIManager.WindowCount <= 1)
                 {
                     if (dashboardInstance == null)
@@ -67,13 +63,10 @@ namespace TravelMapEnhancements
 
             if (!string.IsNullOrEmpty(keyString))
             {
-                // Lo pasamos a minúsculas y le quitamos los espacios para que sea a prueba de manazas
                 keyString = keyString.Trim().ToLower();
 
-                // EL TRADUCTOR UNIVERSAL (De humano a Unity)
                 switch (keyString)
                 {
-                    // Números (El usuario pone "1", Unity exige "Alpha1")
                     case "0": keyString = "Alpha0"; break;
                     case "1": keyString = "Alpha1"; break;
                     case "2": keyString = "Alpha2"; break;
@@ -85,14 +78,12 @@ namespace TravelMapEnhancements
                     case "8": keyString = "Alpha8"; break;
                     case "9": keyString = "Alpha9"; break;
 
-                    // Símbolos clásicos
                     case ".": case "period": keyString = "Period"; break;
                     case ",": case "comma": keyString = "Comma"; break;
                     case "-": case "minus": keyString = "Minus"; break;
                     case "+": case "plus": keyString = "Plus"; break;
                     case " ": case "space": keyString = "Space"; break;
 
-                    // Teclas de control y otras hierbas
                     case "esc": case "escape": keyString = "Escape"; break;
                     case "enter": case "return": keyString = "Return"; break;
                     case "ctrl": case "leftctrl": case "leftcontrol": keyString = "LeftControl"; break;
@@ -105,10 +96,7 @@ namespace TravelMapEnhancements
                     case "capslock": case "caps": keyString = "CapsLock"; break;
                 }
 
-                // FIX C# 6.0
                 KeyCode result;
-
-                // El 'true' ignora las mayúsculas de lo que quede (ej: "m" funcionará como "M")
                 if (Enum.TryParse(keyString, true, out result))
                 {
                     toggleKey = result;
@@ -129,6 +117,9 @@ namespace TravelMapEnhancements
             {
                 public string Name;
                 public int Region;
+                public bool IsHeader;
+                public ulong QuestUID;
+                public Place QuestPlace; // Guardamos el objeto original del motor
             }
 
             Panel mainPanel;
@@ -140,7 +131,10 @@ namespace TravelMapEnhancements
             List<TravelData> activeQuests = new List<TravelData>();
             static List<TravelData> favorites = new List<TravelData>();
 
+            HashSet<ulong> collapsedQuests = new HashSet<ulong>();
+
             int selectedRegion = -1;
+            Place selectedQuestPlace = null; // Chivato de la ubicación exacta
             static bool isGlobalFavs = true;
 
             static readonly string favPath = Path.Combine(Application.persistentDataPath, "TravelFavsData.txt");
@@ -149,8 +143,6 @@ namespace TravelMapEnhancements
             public TravelDashboardWindow(IUserInterfaceManager uiManager, Mod mod) : base(uiManager)
             {
                 PauseWhileOpen = true;
-
-                // Carga inicial para que la primera vez no salga vacío
                 LoadFavMode();
                 LoadFavs();
             }
@@ -177,8 +169,26 @@ namespace TravelMapEnhancements
                     int idx = questListBox.SelectedIndex;
                     if (idx >= 0 && idx < activeQuests.Count)
                     {
-                        locationTextBox.Text = activeQuests[idx].Name;
-                        selectedRegion = activeQuests[idx].Region;
+                        var data = activeQuests[idx];
+                        if (data.IsHeader)
+                        {
+                            if (collapsedQuests.Contains(data.QuestUID))
+                                collapsedQuests.Remove(data.QuestUID);
+                            else
+                                collapsedQuests.Add(data.QuestUID);
+
+                            locationTextBox.Text = "";
+                            selectedRegion = -1;
+                            selectedQuestPlace = null;
+
+                            RefreshLists();
+                        }
+                        else
+                        {
+                            locationTextBox.Text = data.Name;
+                            selectedRegion = data.Region;
+                            selectedQuestPlace = data.QuestPlace; // Guardamos el objeto exacto de la misión
+                        }
                     }
                 };
 
@@ -194,6 +204,7 @@ namespace TravelMapEnhancements
                         {
                             locationTextBox.Text = favorites[idx].Name;
                             selectedRegion = favorites[idx].Region;
+                            selectedQuestPlace = null; // Es un favorito, limpiamos el objeto de misión
                         }
                     };
 
@@ -222,7 +233,6 @@ namespace TravelMapEnhancements
             {
                 base.OnPush();
 
-                // Forzamos carga por si hemos cambiado de personaje en la misma sesión
                 LoadFavMode();
                 LoadFavs();
 
@@ -232,11 +242,11 @@ namespace TravelMapEnhancements
                 if (GameManager.Instance.PlayerMouseLook != null)
                     GameManager.Instance.PlayerMouseLook.cursorActive = true;
 
-                // FIX DEL CRASH SILENCIOSO: Comprobamos que el textbox ya esté creado
                 if (locationTextBox != null)
                     locationTextBox.Text = "";
 
                 selectedRegion = -1;
+                selectedQuestPlace = null;
                 RefreshLists();
             }
 
@@ -274,30 +284,100 @@ namespace TravelMapEnhancements
                     locationTextBox.Text = "";
 
                 selectedRegion = -1;
+                selectedQuestPlace = null;
                 LoadFavs();
                 RefreshLists();
             }
 
             void RefreshLists()
             {
-                if (questListBox != null)
+                if (questListBox == null) return;
+
+                questListBox.ClearItems();
+                activeQuests.Clear();
+
+                var sites = QuestMachine.Instance?.GetAllActiveQuestSites();
+
+                if (sites != null)
                 {
-                    questListBox.ClearItems();
-                    activeQuests.Clear();
-                    var sites = QuestMachine.Instance?.GetAllActiveQuestSites();
-                    HashSet<string> seen = new HashSet<string>();
-                    if (sites != null)
+                    Dictionary<ulong, List<Place>> questGroups = new Dictionary<ulong, List<Place>>();
+
+                    foreach (var s in sites)
                     {
-                        foreach (var s in sites)
+                        if (string.IsNullOrEmpty(s.locationName) || s.regionIndex < 0) continue;
+
+                        Quest q = QuestMachine.Instance.GetQuest(s.questUID);
+
+                        if (q == null || q.QuestComplete || q.QuestTombstoned)
+                            continue;
+
+                        var logMessages = q.GetLogMessages();
+                        bool hasLog = (logMessages != null && logMessages.Length > 0);
+                        bool isMainStory = !string.IsNullOrEmpty(q.QuestName) && q.QuestName.ToUpper().StartsWith("S0");
+
+                        if (!hasLog && !isMainStory)
+                            continue;
+
+                        // Localizamos el Place exacto
+                        Place actualPlace = null;
+                        var questPlaces = q.GetAllResources(typeof(Place));
+
+                        if (questPlaces != null)
                         {
-                            if (!string.IsNullOrEmpty(s.locationName) && seen.Add(s.locationName))
+                            foreach (Place p in questPlaces)
                             {
-                                activeQuests.Add(new TravelData { Name = s.locationName, Region = s.regionIndex });
-                                questListBox.AddItem(s.locationName);
+                                if (p.SiteDetails.mapId == s.mapId)
+                                {
+                                    actualPlace = p;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Fuera morralla y spoilers ocultos
+                        if (actualPlace == null || actualPlace.IsHidden)
+                            continue;
+
+                        if (!questGroups.ContainsKey(s.questUID))
+                            questGroups[s.questUID] = new List<Place>();
+
+                        questGroups[s.questUID].Add(actualPlace);
+                    }
+
+                    foreach (var kvp in questGroups)
+                    {
+                        ulong qUID = kvp.Key;
+                        var qSites = kvp.Value;
+
+                        Quest q = QuestMachine.Instance.GetQuest(qUID);
+                        string qName = (q != null && !string.IsNullOrEmpty(q.DisplayName)) ? q.DisplayName : "Unknown Quest";
+
+                        activeQuests.Add(new TravelData { Name = qName, Region = -1, IsHeader = true, QuestUID = qUID, QuestPlace = null });
+
+                        string headerPrefix = collapsedQuests.Contains(qUID) ? "[+] " : "[-] ";
+                        questListBox.AddItem(headerPrefix + qName);
+
+                        if (!collapsedQuests.Contains(qUID))
+                        {
+                            HashSet<string> seen = new HashSet<string>();
+                            foreach (var p in qSites)
+                            {
+                                string locName = p.SiteDetails.locationName;
+                                string regName = DaggerfallUnity.Instance.ContentReader.MapFileReader.GetRegionName(p.SiteDetails.regionIndex);
+                                var realLoc = DaggerfallUnity.Instance.ContentReader.MapFileReader.GetLocation(regName, locName);
+
+                                if (!realLoc.Loaded) continue;
+
+                                if (seen.Add(locName))
+                                {
+                                    activeQuests.Add(new TravelData { Name = locName, Region = p.SiteDetails.regionIndex, IsHeader = false, QuestUID = qUID, QuestPlace = p });
+                                    questListBox.AddItem("  - " + locName);
+                                }
                             }
                         }
                     }
                 }
+
                 if (favListBox != null)
                 {
                     favListBox.ClearItems();
@@ -314,32 +394,42 @@ namespace TravelMapEnhancements
 
                 CloseWindow();
 
-                string regName = DaggerfallUnity.Instance.ContentReader.MapFileReader.GetRegionName(selectedRegion);
-                DaggerfallConnect.DFLocation realLocation = DaggerfallUnity.Instance.ContentReader.MapFileReader.GetLocation(regName, loc);
-
-                if (realLocation.Loaded)
+                // Si tenemos el Place exacto (Misión), lo usamos directamente. 
+                // Esto es infalible y va a la coordenada exacta del ID, llámese como se llame.
+                if (selectedQuestPlace != null)
                 {
-                    Place fakePlace = new Place(null);
-                    SiteDetails fakeDetails = new SiteDetails();
-
-                    fakeDetails.locationName = realLocation.Name;
-                    fakeDetails.regionName = realLocation.RegionName;
-                    fakeDetails.regionIndex = realLocation.RegionIndex;
-                    fakeDetails.locationId = realLocation.Exterior.ExteriorData.LocationId;
-                    fakeDetails.mapId = realLocation.MapTableData.MapId;
-
-                    fakePlace.SiteDetails = fakeDetails;
-
-                    // FIX MAPA ZOMBI: Usar instancia global
-                    DaggerfallUI.Instance.DfTravelMapWindow.GotoPlace(fakePlace);
+                    DaggerfallUI.Instance.DfTravelMapWindow.GotoPlace(selectedQuestPlace);
                     DaggerfallUI.PostMessage(DaggerfallUIMessages.dfuiOpenTravelMapWindow);
                 }
                 else
                 {
-                    DaggerfallMessageBox msgBox = new DaggerfallMessageBox(DaggerfallUI.UIManager, null);
-                    msgBox.SetText("Error de GPS: El motor no encuentra las coordenadas de " + loc);
-                    msgBox.ClickAnywhereToClose = true;
-                    msgBox.Show();
+                    // Si es un Favorito, tiramos del sistema clásico de búsqueda por nombre
+                    string regName = DaggerfallUnity.Instance.ContentReader.MapFileReader.GetRegionName(selectedRegion);
+                    DaggerfallConnect.DFLocation realLocation = DaggerfallUnity.Instance.ContentReader.MapFileReader.GetLocation(regName, loc);
+
+                    if (realLocation.Loaded)
+                    {
+                        Place fakePlace = new Place(null);
+                        SiteDetails fakeDetails = new SiteDetails();
+
+                        fakeDetails.locationName = realLocation.Name;
+                        fakeDetails.regionName = realLocation.RegionName;
+                        fakeDetails.regionIndex = realLocation.RegionIndex;
+                        fakeDetails.locationId = realLocation.Exterior.ExteriorData.LocationId;
+                        fakeDetails.mapId = realLocation.MapTableData.MapId;
+
+                        fakePlace.SiteDetails = fakeDetails;
+
+                        DaggerfallUI.Instance.DfTravelMapWindow.GotoPlace(fakePlace);
+                        DaggerfallUI.PostMessage(DaggerfallUIMessages.dfuiOpenTravelMapWindow);
+                    }
+                    else
+                    {
+                        DaggerfallMessageBox msgBox = new DaggerfallMessageBox(DaggerfallUI.UIManager, null);
+                        msgBox.SetText("Error de GPS: El motor no encuentra las coordenadas de " + loc);
+                        msgBox.ClickAnywhereToClose = true;
+                        msgBox.Show();
+                    }
                 }
             }
 
@@ -354,7 +444,6 @@ namespace TravelMapEnhancements
                 if (File.Exists(favModePath))
                 {
                     string data = File.ReadAllText(favModePath).Trim();
-                    // FIX C# 6.0
                     bool result;
                     if (bool.TryParse(data, out result)) isGlobalFavs = result;
                 }
@@ -374,7 +463,7 @@ namespace TravelMapEnhancements
                 {
                     string n = GameManager.Instance.PlayerGPS.CurrentLocation.Name;
                     int r = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
-                    if (!favorites.Exists(f => f.Name == n)) { favorites.Add(new TravelData { Name = n, Region = r }); SaveFavs(); RefreshLists(); }
+                    if (!favorites.Exists(f => f.Name == n)) { favorites.Add(new TravelData { Name = n, Region = r, IsHeader = false, QuestPlace = null }); SaveFavs(); RefreshLists(); }
                 }
             }
             void AddFavSelected()
@@ -383,7 +472,7 @@ namespace TravelMapEnhancements
                 string n = locationTextBox.Text.Trim();
                 if (!string.IsNullOrEmpty(n) && selectedRegion != -1)
                 {
-                    if (!favorites.Exists(f => f.Name == n)) { favorites.Add(new TravelData { Name = n, Region = selectedRegion }); SaveFavs(); RefreshLists(); }
+                    if (!favorites.Exists(f => f.Name == n)) { favorites.Add(new TravelData { Name = n, Region = selectedRegion, IsHeader = false, QuestPlace = null }); SaveFavs(); RefreshLists(); }
                 }
             }
             void RemoveFav() { if (favListBox != null && favListBox.SelectedIndex >= 0) { favorites.RemoveAt(favListBox.SelectedIndex); SaveFavs(); RefreshLists(); } }
@@ -413,11 +502,10 @@ namespace TravelMapEnhancements
                     foreach (var l in lines)
                     {
                         var parts = l.Split('|');
-                        // FIX C# 6.0
                         int r;
                         if (parts.Length == 2 && int.TryParse(parts[0], out r))
                         {
-                            favorites.Add(new TravelData { Name = parts[1], Region = r });
+                            favorites.Add(new TravelData { Name = parts[1], Region = r, IsHeader = false, QuestPlace = null });
                         }
                     }
                 }
